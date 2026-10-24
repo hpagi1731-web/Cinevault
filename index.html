@@ -1,41 +1,72 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="CineVault — discover movies, explore genres and save favourites.">
-<title>CineVault — Movie Catalogue</title>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d14">
+  <title>CineVault — Movie Catalogue</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="site-header">
-  <a class="brand" href="#"><span class="brand-mark">C</span><span>CINE<span class="accent">VAULT</span></span></a>
-  <nav><a href="#home">Home</a><a href="#catalogue">Movies</a><a href="#genres">Genres</a></nav>
-  <div class="header-actions"><label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Search movies..." aria-label="Search movies"></label><button id="adminOpen" class="admin-button">Admin ↗</button></div>
-</header>
-<main>
-<section class="hero" id="home">
-  <div class="hero-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="hero-sigil">✦</div><div class="hero-art-label">THE NEXT<br>CHAPTER</div></div>
-  <div class="hero-copy"><p class="eyebrow"><span class="live-dot"></span> YOUR MOVIE UNIVERSE</p><h1>Find your next<br><span>favourite story.</span></h1><p class="hero-description">A curated universe of cinema. Discover new worlds, explore genres, and keep your watchlist close.</p><div class="hero-actions"><a class="button button-primary" href="#catalogue">Explore catalogue <span>↗</span></a><button id="featuredButton" class="button button-ghost">Featured pick <span>▶</span></button></div><div class="hero-foot"><span>01 — DISCOVER</span><span>ENDLESS STORIES. ONE PLACE.</span></div></div>
-</section>
-<section class="section" id="catalogue">
-  <div class="section-heading"><div><p class="eyebrow">HANDPICKED FOR YOU</p><h2>Explore the catalogue<span class="accent">.</span></h2></div><p id="resultCount" class="result-count">10 titles</p></div>
-  <div class="toolbar"><div id="genreFilters" class="genre-filters"><button class="filter-chip active" data-genre="All">All movies</button><button class="filter-chip" data-genre="Action">Action</button><button class="filter-chip" data-genre="Drama">Drama</button><button class="filter-chip" data-genre="Sci-Fi">Sci-Fi</button><button class="filter-chip" data-genre="Thriller">Thriller</button><button class="filter-chip" data-genre="Comedy">Comedy</button><button class="filter-chip" data-genre="Mystery">Mystery</button></div><select id="sortSelect" aria-label="Sort movies"><option value="featured">Sort: Featured</option><option value="newest">Newest first</option><option value="rating">Highest rated</option><option value="az">Title A–Z</option></select></div>
-  <div id="movieGrid" class="movie-grid" aria-live="polite"></div>
-</section>
-<section class="curator" id="genres"><div class="curator-symbol">✳</div><div><p class="eyebrow">YOUR PERSONAL CINEMA GUIDE</p><h2>One catalogue.<br>Many worlds.</h2><p>Browse by mood, find hidden gems, and build a list for your next movie night.</p></div><a class="button button-light" href="#catalogue">Browse all movies ↗</a></section>
-<section class="about-strip"><span class="brand-mini">C<span>V</span></span><p><strong>CineVault</strong> is an independent movie discovery catalogue. Film details and artwork in this starter version are illustrative placeholders.</p><span class="footer-note">MADE FOR MOVIE LOVERS</span></section>
-</main>
-<footer><span>© <span id="year"></span> CINEVAULT</span><span>DISCOVER. SAVE. REPEAT.</span><button id="footerAdmin" class="text-button">Catalogue management</button></footer>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">C</span><span>Cine<span>Vault</span></span></a>
+    <div class="header-actions">
+      <button id="watchlistToggle" class="ghost-button" type="button">♡ Watchlist <span id="watchlistCount">0</span></button>
+      <button id="adminToggle" class="outline-button" type="button">Admin</button>
+    </div>
+  </header>
 
-<div id="movieModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-backdrop" data-close="movieModal"></div><div class="modal-card detail-card"><button class="modal-close" data-close="movieModal" aria-label="Close">×</button><div id="detailArtwork" class="detail-artwork"><span id="detailSymbol">✦</span></div><div class="detail-content"><p id="detailGenre" class="eyebrow"></p><h2 id="modalTitle"></h2><div id="detailMeta" class="detail-meta"></div><p id="detailDescription"></p><button id="watchlistButton" class="button button-primary">＋ Add to watchlist</button><p class="fine-print">Catalogue demo: no films are hosted or streamed here.</p></div></div></div>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">YOUR PERSONAL CINEMA LIBRARY</p>
+      <h1>Find your next <span>favourite.</span></h1>
+      <p class="hero-copy">Discover films, explore details, and follow authorised download links.</p>
+      <label class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Search titles, genres, descriptions…" autocomplete="off"></label>
+      <div id="genreFilters" class="filters"></div>
+    </section>
 
-<div id="adminModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle"><div class="modal-backdrop" data-close="adminModal"></div><div class="modal-card admin-card"><button class="modal-close" data-close="adminModal" aria-label="Close">×</button><p class="eyebrow">CATALOGUE TOOLS</p><h2 id="adminTitle">Manage movies<span class="accent">.</span></h2><p class="admin-intro">Add a title to this browser's catalogue or remove a custom entry. Changes are saved locally in this browser.</p><form id="movieForm" class="admin-form">
-<label>Movie title<input name="title" required maxlength="70" placeholder="e.g. The Hidden City"></label>
-<div class="form-row"><label>Release year<input name="year" type="number" min="1888" max="2100" value="2026" required></label><label>Genre<select name="genre"><option>Action</option><option>Drama</option><option>Sci-Fi</option><option>Thriller</option><option>Comedy</option><option>Mystery</option><option>Romance</option><option>Documentary</option></select></label></div>
-<div class="form-row"><label>Rating (0–10)<input name="rating" type="number" min="0" max="10" step=".1" value="7.5" required></label><label>Poster image URL<input name="poster" type="url" placeholder="https://..."></label></div>
-<label>Short description<textarea name="description" rows="3" maxlength="300" placeholder="What is this film about?"></textarea></label>
-<button class="button button-primary" type="submit">＋ Add movie to catalogue</button>
-</form><div class="admin-list-heading"><h3>Custom titles</h3><button id="exportButton" class="text-button">Export JSON ↓</button></div><div id="customMovieList" class="custom-list"></div><p class="fine-print">This is a local demo admin panel, not secure multi-user authentication. For a public live site, connect a backend/database and protect admin access.</p></div></div>
-<div id="toast" class="toast" role="status"></div>
-<script src="app.js"></script>
-</body></html>
+    <section class="catalogue-section">
+      <div class="section-heading"><div><p class="eyebrow">THE COLLECTION</p><h2 id="collectionTitle">Featured titles</h2></div>
+        <label class="sort-label">Sort <select id="sortSelect"><option value="featured">Featured</option><option value="title">Title A–Z</option><option value="year">Newest year</option><option value="rating">Rating</option></select></label>
+      </div>
+      <div id="movieGrid" class="movie-grid"></div>
+      <p id="emptyState" class="empty-state" hidden>No titles found. Try another search or genre.</p>
+    </section>
+
+    <section id="adminPanel" class="admin-panel" hidden>
+      <div class="section-heading"><div><p class="eyebrow">LOCAL CATALOGUE EDITOR</p><h2>Manage titles</h2></div><button id="closeAdmin" class="ghost-button" type="button">Close</button></div>
+      <p class="notice"><strong>Note:</strong> This static GitHub Pages site saves edits in this browser only. It does not securely publish admin edits to every visitor. Only add download links for content you own or are authorised to distribute.</p>
+      <form id="movieForm" class="admin-form">
+        <input type="hidden" id="editId">
+        <label>Movie title *<input id="movieTitle" required maxlength="120" placeholder="e.g. My Short Film"></label>
+        <div class="form-row">
+          <label>Year<input id="movieYear" type="number" min="1888" max="2100" placeholder="2026"></label>
+          <label>Genre<input id="movieGenre" maxlength="40" placeholder="Drama"></label>
+          <label>Rating (0–10)<input id="movieRating" type="number" min="0" max="10" step="0.1" placeholder="8.0"></label>
+        </div>
+        <label>Poster image URL<input id="moviePoster" type="url" placeholder="https://example.com/poster.jpg"></label>
+        <label>Description<textarea id="movieDescription" rows="3" maxlength="1000" placeholder="Short description…"></textarea></label>
+        <label>External download page URL
+          <input id="movieDownload" type="url" placeholder="https://example.com/authorised-download-page">
+          <small>Optional. Visitors will see a “Download / Get film” button that opens this page in a new tab.</small>
+        </label>
+        <div class="form-actions"><button class="primary-button" type="submit" id="saveMovieButton">Save title</button><button class="ghost-button" type="button" id="cancelEdit">Clear form</button></div>
+      </form>
+      <div class="admin-list-heading"><h3>Current titles</h3><button id="exportButton" class="outline-button" type="button">Export catalogue JSON</button></div>
+      <div id="adminList" class="admin-list"></div>
+      <label class="import-label">Import catalogue JSON (optional)<input id="importFile" type="file" accept=".json,application/json"></label>
+    </section>
+  </main>
+
+  <div id="detailModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <article class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <button class="modal-close" type="button" data-close-modal aria-label="Close details">×</button>
+      <img id="detailPoster" class="detail-poster" alt="">
+      <div class="detail-content"><p id="detailMeta" class="eyebrow"></p><h2 id="detailTitle"></h2><p id="detailDescription"></p><div id="detailActions" class="detail-actions"></div></div>
+    </article>
+  </div>
+  <footer><span>© <span id="yearNow"></span> CineVault</span><span>Catalogue for films shared with permission.</span></footer>
+  <script src="app.js"></script>
+</body>
+</html>
