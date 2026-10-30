@@ -1,74 +1,185 @@
 
-// CineVault shared catalogue — Supabase
+"use strict";
+
+// ==========================================
+// CINEVAULT — SUPABASE CONFIGURATION
+// ==========================================
 
 const SUPABASE_URL = "https://nurpfyozhtuirrkasadk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_AHnmjArp9RZYcqymMp6F_A_guEVZFOn";
 const ADMIN_EMAIL = "hitsnizam@gmail.com";
-
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
-
 const WATCH_KEY = "cinevault-watchlist-v2";
-
-let movies = [];
-let activeGenre = "All";
-let showingWatchlist = false;
-let currentUser = null;
-
-let watchlist = new Set(
-  JSON.parse(localStorage.getItem(WATCH_KEY) || "[]")
-);
 
 const $ = id => document.getElementById(id);
 
-function safeUrl(raw) {
-  try {
-    const u = new URL(raw);
-    return ["http:", "https:"].includes(u.protocol) ? u.href : "";
-  } catch {
-    return "";
-  }
+let supabaseClient;
+let movies = [];
+let currentUser = null;
+let activeGenre = "All";
+let showingWatchlist = false;
+
+let watchlist;
+try {
+  watchlist = new Set(JSON.parse(localStorage.getItem(WATCH_KEY) || "[]"));
+} catch {
+  watchlist = new Set();
 }
 
-function escapeHtml(s = "") {
-  return String(s).replace(/[&<>"']/g, c => ({
+// ==========================================
+// HELPERS
+// ==========================================
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, char => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
     "'": "&#39;"
-  }[c]));
+  }[char]));
 }
 
-function fromRow(r) {
+function safeUrl(value) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function setStatus(message, isError = false) {
+  $("authStatus").textContent = message;
+  $("authStatus").classList.toggle("error", isError);
+}
+
+function isAdmin() {
+  return Boolean(
+    currentUser &&
+    currentUser.email &&
+    currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+  );
+}
+
+function fromRow(row) {
   return {
-    id: r.id,
-    title: r.title,
-    year: r.year || "",
-    genre: r.genre || "",
-    rating: r.rating ?? "",
-    description: r.description || "",
-    poster: r.poster_url || "",
-    downloadUrl: r.download_url || ""
+    id: row.id,
+    title: row.title || "",
+    year: row.year || "",
+    genre: row.genre || "",
+    rating: row.rating ?? "",
+    description: row.description || "",
+    poster: row.poster_url || "",
+    downloadUrl: row.download_url || ""
   };
 }
 
-function toRow(m) {
+function toRow(movie) {
   return {
-    title: m.title,
-    year: m.year ? Number(m.year) : null,
-    genre: m.genre || null,
-    rating: m.rating === "" ? null : Number(m.rating),
-    description: m.description || null,
-    poster_url: safeUrl(m.poster) || null,
-    download_url: safeUrl(m.downloadUrl) || null
+    title: movie.title,
+    year: movie.year ? Number(movie.year) : null,
+    genre: movie.genre || null,
+    rating: movie.rating === "" ? null : Number(movie.rating),
+    description: movie.description || null,
+    poster_url: safeUrl(movie.poster) || null,
+    download_url: safeUrl(movie.downloadUrl) || null
   };
 }
+
+function saveWatchlist() {
+  localStorage.setItem(WATCH_KEY, JSON.stringify([...watchlist]));
+}
+
+// ==========================================
+// AUTHENTICATION
+// ==========================================
+
+function updateAuthUI() {
+  const authorised = isAdmin();
+
+  $("adminEditor").hidden = !authorised;
+  $("logoutButton").hidden = !currentUser;
+  $("loginButton").hidden = Boolean(currentUser);
+
+  $("adminEmail").value = currentUser?.email || ADMIN_EMAIL;
+  $("adminEmail").disabled = Boolean(currentUser);
+  $("adminPassword").disabled = Boolean(currentUser);
+
+  if (authorised) {
+    setStatus("Successfully signed in as CineVault administrator.");
+  } else if (currentUser) {
+    setStatus("This account is not authorised to manage CineVault.", true);
+  } else {
+    setStatus("Sign in to manage the shared catalogue.");
+  }
+
+  renderAdmin();
+}
+
+async function login(event) {
+  event.preventDefault();
+
+  const email = $("adminEmail").value.trim();
+  const password = $("adminPassword").value;
+
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    setStatus("Please use the authorised admin email.", true);
+    return;
+  }
+
+  if (!password) {
+    setStatus("Please enter your password.", true);
+    return;
+  }
+
+  $("loginButton").disabled = true;
+  setStatus("Signing in...");
+
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    currentUser = data.user;
+    $("adminPassword").value = "";
+    updateAuthUI();
+
+    if (!isAdmin()) {
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      updateAuthUI();
+    }
+  } catch (error) {
+    setStatus(error.message || "Login failed.", true);
+  } finally {
+    $("loginButton").disabled = false;
+  }
+}
+
+async function logout() {
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    setStatus(error.message, true);
+    return;
+  }
+
+  currentUser = null;
+  updateAuthUI();
+}
+
+// ==========================================
+// DATABASE
+// ==========================================
 
 async function loadMovies() {
-  const { data, error } = await supabase
+  $("emptyState").textContent = "Loading movies...";
+  $("emptyState").hidden = false;
+
+  const { data, error } = await supabaseClient
     .from("movies")
     .select("*")
     .order("created_at", { ascending: false });
@@ -80,182 +191,187 @@ async function loadMovies() {
   renderAdmin();
 }
 
-function setStatus(msg, bad = false) {
-  $("authStatus").textContent = msg;
-  $("authStatus").classList.toggle("error", bad);
-}
+// ==========================================
+// MOVIE DISPLAY
+// ==========================================
 
-function isAdmin() {
-  return !!currentUser &&
-    currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-}
+function posterMarkup(movie) {
+  const url = safeUrl(movie.poster);
 
-function updateAuthUI() {
-  const ok = isAdmin();
-
-  $("adminEditor").hidden = !ok;
-  $("logoutButton").hidden = !currentUser;
-
-  $("adminEmail").value = currentUser?.email || ADMIN_EMAIL;
-  $("adminEmail").disabled = !!currentUser;
-  $("adminPassword").disabled = !!currentUser;
-
-  $("loginForm").querySelector('button[type="submit"]').hidden =
-    !!currentUser;
-
-  if (currentUser && !ok) {
-    setStatus("This account is not authorised to manage CineVault.", true);
-  } else if (ok) {
-    setStatus("Signed in as the CineVault administrator.");
-  } else {
-    setStatus("Sign in to manage the shared catalogue.");
+  if (!url) {
+    return '<div class="poster-placeholder">CV</div>';
   }
 
-  renderAdmin();
-}
-
-function posterMarkup(m) {
-  const u = safeUrl(m.poster || "");
-
-  return u
-    ? `<img loading="lazy"
-        src="${escapeHtml(u)}"
-        alt="Poster for ${escapeHtml(m.title)}"
-        onerror="this.remove();this.parentElement.innerHTML='<div class=&quot;poster-placeholder&quot;>CV</div>'">`
-    : `<div class="poster-placeholder">CV</div>`;
+  return `
+    <img
+      loading="lazy"
+      src="${escapeHtml(url)}"
+      alt="Poster for ${escapeHtml(movie.title)}"
+      onerror="this.style.display='none';this.nextElementSibling.hidden=false"
+    >
+    <div class="poster-placeholder" hidden>CV</div>
+  `;
 }
 
 function renderGenres() {
-  const gs = [
+  const genres = [
     "All",
-    ...new Set(movies.map(m => m.genre).filter(Boolean).sort())
+    ...new Set(movies.map(movie => movie.genre).filter(Boolean).sort())
   ];
 
-  $("genreFilters").innerHTML = gs.map(g => `
-    <button type="button"
-      class="filter-chip ${g === activeGenre ? "active" : ""}"
-      data-genre="${escapeHtml(g)}">
-      ${escapeHtml(g)}
+  $("genreFilters").innerHTML = genres.map(genre => `
+    <button
+      type="button"
+      class="filter-chip ${genre === activeGenre ? "active" : ""}"
+      data-genre="${escapeHtml(genre)}"
+    >
+      ${escapeHtml(genre)}
     </button>
   `).join("");
 }
 
-function visibleMovies() {
-  let a = movies.filter(m =>
-    (activeGenre === "All" || m.genre === activeGenre) &&
-    (!showingWatchlist || watchlist.has(m.id))
-  );
+function getVisibleMovies() {
+  let result = movies.filter(movie => {
+    const genreMatches =
+      activeGenre === "All" || movie.genre === activeGenre;
 
-  const q = $("searchInput").value.trim().toLowerCase();
+    const watchMatches =
+      !showingWatchlist || watchlist.has(movie.id);
 
-  if (q) {
-    a = a.filter(m =>
-      [m.title, m.genre, m.description, String(m.year)]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
+    return genreMatches && watchMatches;
+  });
+
+  const query = $("searchInput").value.trim().toLowerCase();
+
+  if (query) {
+    result = result.filter(movie => {
+      const content = [
+        movie.title,
+        movie.genre,
+        movie.description,
+        movie.year
+      ].join(" ").toLowerCase();
+
+      return content.includes(query);
+    });
   }
 
-  const s = $("sortSelect").value;
+  const sort = $("sortSelect").value;
 
-  if (s === "title") {
-    a.sort((x, y) => x.title.localeCompare(y.title));
+  if (sort === "title") {
+    result.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sort === "year") {
+    result.sort((a, b) => (b.year || 0) - (a.year || 0));
+  } else if (sort === "rating") {
+    result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
-  if (s === "year") {
-    a.sort((x, y) => (y.year || 0) - (x.year || 0));
-  }
-
-  if (s === "rating") {
-    a.sort((x, y) => (y.rating || 0) - (x.rating || 0));
-  }
-
-  return a;
+  return result;
 }
 
-function downloadLink(m) {
-  const u = safeUrl(m.downloadUrl || "");
+function downloadLink(movie) {
+  const url = safeUrl(movie.downloadUrl);
 
-  return u
-    ? `<a class="download-button"
-        href="${escapeHtml(u)}"
-        target="_blank"
-        rel="noopener noreferrer">↗ Get / Download</a>`
-    : "";
+  if (!url) return "";
+
+  return `
+    <a
+      class="download-button"
+      href="${escapeHtml(url)}"
+      target="_blank"
+      rel="noopener noreferrer"
+    >↗ Get / Download</a>
+  `;
 }
 
 function renderMovies() {
   renderGenres();
 
-  const a = visibleMovies();
+  const visible = getVisibleMovies();
 
   $("collectionTitle").textContent =
     showingWatchlist ? "Your watchlist" : "Featured titles";
 
-  $("movieGrid").innerHTML = a.map(m => `
+  $("movieGrid").innerHTML = visible.map(movie => `
     <article class="movie-card">
       <div class="poster-wrap">
-        ${posterMarkup(m)}
-        ${m.rating !== "" && m.rating !== null
-          ? `<span class="rating">★ ${escapeHtml(m.rating)}</span>`
+        ${posterMarkup(movie)}
+        ${movie.rating !== "" && movie.rating !== null
+          ? `<span class="rating">★ ${escapeHtml(movie.rating)}</span>`
           : ""}
       </div>
 
       <div class="card-body">
-        <h3 class="card-title" title="${escapeHtml(m.title)}">
-          ${escapeHtml(m.title)}
+        <h3 class="card-title" title="${escapeHtml(movie.title)}">
+          ${escapeHtml(movie.title)}
         </h3>
 
         <p class="card-meta">
-          ${escapeHtml(m.year || "Year n/a")} ·
-          ${escapeHtml(m.genre || "Uncategorised")}
+          ${escapeHtml(movie.year || "Year n/a")} ·
+          ${escapeHtml(movie.genre || "Uncategorised")}
         </p>
 
         <div class="card-actions">
-          <button class="details-button"
+          <button
+            class="details-button"
             type="button"
-            data-details="${escapeHtml(m.id)}">
-            Details
-          </button>
+            data-details="${escapeHtml(movie.id)}"
+          >Details</button>
 
-          ${downloadLink(m)}
+          ${downloadLink(movie)}
         </div>
       </div>
     </article>
   `).join("");
 
-  $("emptyState").hidden = a.length > 0;
+  $("emptyState").hidden = visible.length > 0;
+
+  if (!visible.length) {
+    $("emptyState").textContent = movies.length
+      ? "No titles found. Try another search or genre."
+      : "No movies have been added yet.";
+  }
+
   $("watchlistCount").textContent = watchlist.size;
 }
 
-function renderAdmin() {
-  if (!$("adminList")) return;
+// ==========================================
+// ADMIN MOVIE LIST
+// ==========================================
 
-  $("adminList").innerHTML = movies.map(m => `
+function renderAdmin() {
+  const list = $("adminList");
+  if (!list) return;
+
+  list.innerHTML = movies.map(movie => `
     <div class="admin-item">
-      <img src="${escapeHtml(safeUrl(m.poster) || "")}"
+      <img
+        src="${escapeHtml(safeUrl(movie.poster) || "")}"
         alt=""
-        onerror="this.style.visibility='hidden'">
+        onerror="this.style.visibility='hidden'"
+      >
 
       <div class="admin-item-text">
-        <strong>${escapeHtml(m.title)}</strong>
+        <strong>${escapeHtml(movie.title)}</strong>
         <small>
-          ${escapeHtml(m.year || "")} ·
-          ${escapeHtml(m.genre || "")} ·
-          ${safeUrl(m.downloadUrl) ? "Download link set" : "No download link"}
+          ${escapeHtml(movie.year || "")} ·
+          ${escapeHtml(movie.genre || "")}
         </small>
       </div>
 
-      <div class="admin-item-actions">
-        ${isAdmin()
-          ? `<button type="button" data-edit="${escapeHtml(m.id)}">Edit</button>
-             <button type="button" data-delete="${escapeHtml(m.id)}">Delete</button>`
-          : ""}
-      </div>
+      ${isAdmin() ? `
+        <div class="admin-item-actions">
+          <button type="button" data-edit="${escapeHtml(movie.id)}">Edit</button>
+          <button type="button" data-delete="${escapeHtml(movie.id)}">Delete</button>
+        </div>
+      ` : ""}
     </div>
-  `).join("") || `<p>No titles yet. Sign in and add your first title.</p>`;
+  `).join("") || "<p>No titles yet. Add your first title.</p>";
 }
+
+// ==========================================
+// ADD AND EDIT MOVIES
+// ==========================================
 
 function resetForm() {
   $("movieForm").reset();
@@ -264,51 +380,122 @@ function resetForm() {
 }
 
 function editMovie(id) {
-  const m = movies.find(x => x.id === id);
-  if (!m) return;
+  const movie = movies.find(item => String(item.id) === String(id));
+  if (!movie) return;
 
-  $("editId").value = m.id;
-  $("movieTitle").value = m.title || "";
-  $("movieYear").value = m.year || "";
-  $("movieGenre").value = m.genre || "";
-  $("movieRating").value = m.rating ?? "";
-  $("moviePoster").value = m.poster || "";
-  $("movieDescription").value = m.description || "";
-  $("movieDownload").value = m.downloadUrl || "";
+  $("editId").value = movie.id;
+  $("movieTitle").value = movie.title;
+  $("movieYear").value = movie.year || "";
+  $("movieGenre").value = movie.genre || "";
+  $("movieRating").value = movie.rating ?? "";
+  $("moviePoster").value = movie.poster || "";
+  $("movieDescription").value = movie.description || "";
+  $("movieDownload").value = movie.downloadUrl || "";
 
   $("saveMovieButton").textContent = "Update title";
   $("adminPanel").scrollIntoView({ behavior: "smooth" });
 }
 
-function showDetails(id) {
-  const m = movies.find(x => x.id === id);
-  if (!m) return;
+async function saveMovie(event) {
+  event.preventDefault();
 
-  $("detailPoster").src = safeUrl(m.poster) || "";
-  $("detailPoster").alt = `Poster for ${m.title}`;
+  if (!isAdmin()) {
+    alert("Please sign in with the administrator account.");
+    return;
+  }
 
-  $("detailMeta").textContent = [
-    m.year,
-    m.genre,
-    m.rating !== "" ? `★ ${m.rating}` : ""
-  ].filter(Boolean).join(" · ");
+  const title = $("movieTitle").value.trim();
+  const poster = $("moviePoster").value.trim();
+  const download = $("movieDownload").value.trim();
+  const rating = $("movieRating").value;
 
-  $("detailTitle").textContent = m.title;
-  $("detailDescription").textContent =
-    m.description || "No description provided.";
+  if (!title) {
+    alert("Please enter a movie title.");
+    return;
+  }
 
-  $("detailActions").innerHTML = `
-    <button type="button"
-      class="outline-button"
-      id="detailWatchlist">
-      ${watchlist.has(m.id) ? "♥ In watchlist" : "♡ Add to watchlist"}
-    </button>
-    ${downloadLink(m)}
-  `;
+  if (poster && !safeUrl(poster)) {
+    alert("Please enter a valid poster URL.");
+    return;
+  }
 
-  $("detailWatchlist").onclick = () => toggleWatchlist(m.id);
-  $("detailModal").hidden = false;
+  if (download && !safeUrl(download)) {
+    alert("Please enter a valid download page URL.");
+    return;
+  }
+
+  if (rating !== "" && (Number(rating) < 0 || Number(rating) > 10)) {
+    alert("Rating must be between 0 and 10.");
+    return;
+  }
+
+  const movie = {
+    title,
+    year: $("movieYear").value,
+    genre: $("movieGenre").value.trim(),
+    rating,
+    poster,
+    description: $("movieDescription").value.trim(),
+    downloadUrl: download
+  };
+
+  const id = $("editId").value;
+  const button = $("saveMovieButton");
+
+  button.disabled = true;
+  button.textContent = "Saving...";
+
+  try {
+    let result;
+
+    if (id) {
+      result = await supabaseClient
+        .from("movies")
+        .update(toRow(movie))
+        .eq("id", id);
+    } else {
+      result = await supabaseClient
+        .from("movies")
+        .insert(toRow(movie));
+    }
+
+    if (result.error) throw result.error;
+
+    resetForm();
+    await loadMovies();
+
+    alert("Saved successfully. The shared catalogue has been updated.");
+  } catch (error) {
+    alert("Could not save movie: " + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = $("editId").value ? "Update title" : "Save title";
+  }
 }
+
+async function deleteMovie(id) {
+  if (!isAdmin()) return;
+
+  if (!confirm("Delete this movie from the shared catalogue?")) return;
+
+  const { error } = await supabaseClient
+    .from("movies")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Delete failed: " + error.message);
+    return;
+  }
+
+  watchlist.delete(id);
+  saveWatchlist();
+  await loadMovies();
+}
+
+// ==========================================
+// WATCHLIST
+// ==========================================
 
 function toggleWatchlist(id) {
   if (watchlist.has(id)) {
@@ -317,7 +504,7 @@ function toggleWatchlist(id) {
     watchlist.add(id);
   }
 
-  localStorage.setItem(WATCH_KEY, JSON.stringify([...watchlist]));
+  saveWatchlist();
   renderMovies();
 
   if (!$("detailModal").hidden) {
@@ -325,284 +512,251 @@ function toggleWatchlist(id) {
   }
 }
 
-// Search and filters
+// ==========================================
+// MOVIE DETAILS
+// ==========================================
 
-$("searchInput").addEventListener("input", renderMovies);
-$("sortSelect").addEventListener("change", renderMovies);
+function showDetails(id) {
+  const movie = movies.find(item => String(item.id) === String(id));
+  if (!movie) return;
 
-$("genreFilters").addEventListener("click", e => {
-  const b = e.target.closest("[data-genre]");
+  $("detailPoster").src = safeUrl(movie.poster) || "";
+  $("detailPoster").alt = "Poster for " + movie.title;
 
-  if (b) {
-    activeGenre = b.dataset.genre;
-    renderMovies();
-  }
-});
+  $("detailMeta").textContent = [
+    movie.year,
+    movie.genre,
+    movie.rating !== "" ? "★ " + movie.rating : ""
+  ].filter(Boolean).join(" · ");
 
-$("movieGrid").addEventListener("click", e => {
-  const d = e.target.closest("[data-details]");
+  $("detailTitle").textContent = movie.title;
+  $("detailDescription").textContent =
+    movie.description || "No description provided.";
 
-  if (d) showDetails(d.dataset.details);
-});
-
-// Watchlist
-
-$("watchlistToggle").addEventListener("click", () => {
-  showingWatchlist = !showingWatchlist;
-
-  $("watchlistToggle").innerHTML = `
-    ${showingWatchlist ? "▣ All titles" : "♡ Watchlist"}
-    <span id="watchlistCount">${watchlist.size}</span>
+  $("detailActions").innerHTML = `
+    <button
+      type="button"
+      class="outline-button"
+      id="detailWatchlist"
+    >
+      ${watchlist.has(movie.id) ? "♥ In watchlist" : "♡ Add to watchlist"}
+    </button>
+    ${downloadLink(movie)}
   `;
 
-  renderMovies();
-});
-
-// Admin panel
-
-$("adminToggle").addEventListener("click", () => {
-  $("adminPanel").hidden = !$("adminPanel").hidden;
-
-  if (!$("adminPanel").hidden) {
-    renderAdmin();
-    $("adminPanel").scrollIntoView({ behavior: "smooth" });
-  }
-});
-
-$("closeAdmin").addEventListener("click", () => {
-  $("adminPanel").hidden = true;
-});
-
-$("cancelEdit").addEventListener("click", resetForm);
-
-// Admin login
-
-$("loginForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  const email = $("adminEmail").value.trim();
-  const password = $("adminPassword").value;
-
-  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-    setStatus("This email is not the configured CineVault admin.", true);
-    return;
-  }
-
-  setStatus("Signing in…");
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+  $("detailWatchlist").addEventListener("click", () => {
+    toggleWatchlist(movie.id);
   });
 
-  if (error) {
-    setStatus(error.message, true);
-    return;
-  }
+  $("detailModal").hidden = false;
+}
 
-  currentUser = data.user;
-  $("adminPassword").value = "";
-  updateAuthUI();
-});
+// ==========================================
+// EXPORT AND IMPORT
+// ==========================================
 
-// Logout
-
-$("logoutButton").addEventListener("click", async () => {
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    setStatus(error.message, true);
-  }
-});
-
-// Add or update movie
-
-$("movieForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  if (!isAdmin()) {
-    alert("Please sign in with the CineVault admin account.");
-    return;
-  }
-
-  const title = $("movieTitle").value.trim();
-  const downloadRaw = $("movieDownload").value.trim();
-  const posterRaw = $("moviePoster").value.trim();
-
-  if (!title) {
-    alert("Please enter a movie title.");
-    return;
-  }
-
-  if (downloadRaw && !safeUrl(downloadRaw)) {
-    alert("Enter a valid http or https download page URL.");
-    return;
-  }
-
-  if (posterRaw && !safeUrl(posterRaw)) {
-    alert("Enter a valid http or https poster URL.");
-    return;
-  }
-
-  const id = $("editId").value;
-
-  const m = {
-    title,
-    year: $("movieYear").value,
-    genre: $("movieGenre").value.trim(),
-    rating: $("movieRating").value,
-    poster: posterRaw,
-    description: $("movieDescription").value.trim(),
-    downloadUrl: downloadRaw
-  };
-
-  const res = id
-    ? await supabase.from("movies").update(toRow(m)).eq("id", id)
-    : await supabase.from("movies").insert(toRow(m));
-
-  if (res.error) {
-    alert("Could not save: " + res.error.message);
-    return;
-  }
-
-  resetForm();
-  await loadMovies();
-
-  alert("Saved to the shared CineVault database. All visitors can now see this update.");
-});
-
-// Edit and delete movies
-
-$("adminList").addEventListener("click", async e => {
-  const ed = e.target.closest("[data-edit]");
-  const del = e.target.closest("[data-delete]");
-
-  if (ed) {
-    editMovie(ed.dataset.edit);
-  }
-
-  if (del && confirm("Delete this title from the shared catalogue?")) {
-    const { error } = await supabase
-      .from("movies")
-      .delete()
-      .eq("id", del.dataset.delete);
-
-    if (error) {
-      alert("Delete failed: " + error.message);
-      return;
-    }
-
-    watchlist.delete(del.dataset.delete);
-    localStorage.setItem(WATCH_KEY, JSON.stringify([...watchlist]));
-
-    await loadMovies();
-  }
-});
-
-// Export catalogue
-
-$("exportButton").addEventListener("click", () => {
+function exportCatalogue() {
   const blob = new Blob(
     [JSON.stringify(movies, null, 2)],
     { type: "application/json" }
   );
 
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "cinevault-catalogue.json";
-  a.click();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
 
-  URL.revokeObjectURL(a.href);
-});
+  link.href = url;
+  link.download = "cinevault-catalogue.json";
+  link.click();
 
-// Import catalogue
+  URL.revokeObjectURL(url);
+}
 
-$("importFile").addEventListener("change", async e => {
-  const f = e.target.files[0];
-
-  if (!f) return;
+async function importCatalogue(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
   if (!isAdmin()) {
-    alert("Sign in as admin first.");
-    e.target.value = "";
+    alert("Please sign in as administrator first.");
+    event.target.value = "";
     return;
   }
 
   try {
-    const arr = JSON.parse(await f.text());
+    const imported = JSON.parse(await file.text());
 
-    if (!Array.isArray(arr)) {
-      throw Error("JSON must contain a list of movies");
+    if (!Array.isArray(imported)) {
+      throw new Error("The JSON file must contain a movie list.");
     }
 
-    for (const x of arr) {
-      const row = toRow({
-        title: String(x.title || "Untitled"),
-        year: x.year || "",
-        genre: String(x.genre || ""),
-        rating: x.rating ?? "",
-        poster: x.poster || x.poster_url || "",
-        description: String(x.description || ""),
-        downloadUrl: x.downloadUrl || x.download_url || ""
-      });
+    for (const item of imported) {
+      const movie = {
+        title: String(item.title || "Untitled"),
+        year: item.year || "",
+        genre: String(item.genre || ""),
+        rating: item.rating ?? "",
+        poster: item.poster || item.poster_url || "",
+        description: String(item.description || ""),
+        downloadUrl: item.downloadUrl || item.download_url || ""
+      };
 
-      const { error } = await supabase.from("movies").insert(row);
+      const { error } = await supabaseClient
+        .from("movies")
+        .insert(toRow(movie));
 
       if (error) throw error;
     }
 
     await loadMovies();
-    alert("Catalogue imported into the shared database.");
-  } catch (err) {
-    alert("Could not import catalogue: " + err.message);
+    alert("Catalogue imported successfully.");
+  } catch (error) {
+    alert("Import failed: " + error.message);
   }
 
-  e.target.value = "";
-});
+  event.target.value = "";
+}
 
-// Movie detail modal
+// ==========================================
+// EVENT LISTENERS
+// ==========================================
 
-document.querySelectorAll("[data-close-modal]").forEach(el => {
-  el.addEventListener("click", () => {
-    $("detailModal").hidden = true;
+function setupEvents() {
+  $("adminToggle").addEventListener("click", () => {
+    $("adminPanel").hidden = !$("adminPanel").hidden;
+
+    if (!$("adminPanel").hidden) {
+      $("adminPanel").scrollIntoView({ behavior: "smooth" });
+    }
   });
-});
 
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
-    $("detailModal").hidden = true;
-  }
-});
+  $("closeAdmin").addEventListener("click", () => {
+    $("adminPanel").hidden = true;
+  });
 
-// Current year
+  $("loginForm").addEventListener("submit", login);
+  $("logoutButton").addEventListener("click", logout);
+  $("movieForm").addEventListener("submit", saveMovie);
+  $("cancelEdit").addEventListener("click", resetForm);
 
-$("yearNow").textContent = new Date().getFullYear();
+  $("searchInput").addEventListener("input", renderMovies);
+  $("sortSelect").addEventListener("change", renderMovies);
 
-// Supabase authentication and initial loading
+  $("genreFilters").addEventListener("click", event => {
+    const button = event.target.closest("[data-genre]");
+    if (!button) return;
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  currentUser = session?.user || null;
-  updateAuthUI();
-});
+    activeGenre = button.dataset.genre;
+    renderMovies();
+  });
 
-(async () => {
+  $("movieGrid").addEventListener("click", event => {
+    const button = event.target.closest("[data-details]");
+    if (button) showDetails(button.dataset.details);
+  });
+
+  $("watchlistToggle").addEventListener("click", () => {
+    showingWatchlist = !showingWatchlist;
+
+    $("watchlistToggle").innerHTML = `
+      ${showingWatchlist ? "▣ All titles" : "♡ Watchlist"}
+      <span id="watchlistCount">${watchlist.size}</span>
+    `;
+
+    renderMovies();
+  });
+
+  $("adminList").addEventListener("click", event => {
+    const editButton = event.target.closest("[data-edit]");
+    const deleteButton = event.target.closest("[data-delete]");
+
+    if (editButton) editMovie(editButton.dataset.edit);
+    if (deleteButton) deleteMovie(deleteButton.dataset.delete);
+  });
+
+  $("exportButton").addEventListener("click", exportCatalogue);
+  $("importFile").addEventListener("change", importCatalogue);
+
+  document.querySelectorAll("[data-close-modal]").forEach(element => {
+    element.addEventListener("click", () => {
+      $("detailModal").hidden = true;
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      $("detailModal").hidden = true;
+    }
+  });
+}
+
+// ==========================================
+// START APPLICATION
+// ==========================================
+
+async function startApp() {
   try {
-    const { data, error } = await supabase.auth.getSession();
+    if (!window.supabase) {
+      throw new Error("Supabase library did not load. Check your internet connection.");
+    }
 
+    const requiredIds = [
+      "adminToggle", "adminPanel", "closeAdmin",
+      "loginForm", "adminEmail", "adminPassword",
+      "loginButton", "logoutButton", "authStatus",
+      "adminEditor", "movieForm", "adminList",
+      "movieTitle", "movieYear", "movieGenre",
+      "movieRating", "moviePoster", "movieDescription",
+      "movieDownload", "saveMovieButton", "cancelEdit",
+      "editId", "searchInput", "sortSelect",
+      "genreFilters", "movieGrid", "emptyState",
+      "collectionTitle", "watchlistToggle",
+      "watchlistCount", "detailModal", "detailPoster",
+      "detailMeta", "detailTitle", "detailDescription",
+      "detailActions", "exportButton", "importFile", "yearNow"
+    ];
+
+    const missing = requiredIds.filter(id => !$(id));
+
+    if (missing.length) {
+      throw new Error("Missing HTML elements: " + missing.join(", "));
+    }
+
+    supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    setupEvents();
+    $("yearNow").textContent = new Date().getFullYear();
+
+    const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
 
     currentUser = data.session?.user || null;
     updateAuthUI();
 
     await loadMovies();
-  } catch (err) {
-    console.error(err);
 
-    $("emptyState").hidden = false;
-    $("emptyState").textContent =
-      "Could not load the catalogue. Check Supabase connection and table setup.";
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      updateAuthUI();
+    });
 
-    setStatus(err.message, true);
+    console.log("CineVault started successfully.");
+  } catch (error) {
+    console.error("CineVault error:", error);
+
+    const status = $("authStatus");
+    if (status) {
+      status.textContent = "Error: " + error.message;
+      status.classList.add("error");
+    }
+
+    const empty = $("emptyState");
+    if (empty) {
+      empty.hidden = false;
+      empty.textContent = "Could not load CineVault: " + error.message;
+    }
   }
-})();
-    
+}
+
+startApp();
