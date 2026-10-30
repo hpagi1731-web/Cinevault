@@ -1,17 +1,24 @@
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0d14">
+  <meta name="description" content="CineVault movie catalogue">
   <title>CineVault — Movie Catalogue</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#"><span class="brand-mark">C</span><span>Cine<span>Vault</span></span></a>
+    <a class="brand" href="#">
+      <span class="brand-mark">C</span>
+      <span>Cine<span>Vault</span></span>
+    </a>
     <div class="header-actions">
-      <button id="watchlistToggle" class="ghost-button" type="button">♡ Watchlist <span id="watchlistCount">0</span></button>
+      <button id="watchlistToggle" class="ghost-button" type="button">
+        ♡ Watchlist <span id="watchlistCount">0</span>
+      </button>
       <button id="adminToggle" class="outline-button" type="button">Admin</button>
     </div>
   </header>
@@ -21,46 +28,114 @@
       <p class="eyebrow">YOUR PERSONAL CINEMA LIBRARY</p>
       <h1>Find your next <span>favourite.</span></h1>
       <p class="hero-copy">Discover films, explore details, and follow authorised download links.</p>
-      <label class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Search titles, genres, descriptions…" autocomplete="off"></label>
+      <label class="search-wrap">
+        <span aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" placeholder="Search titles, genres, descriptions…" autocomplete="off">
+      </label>
       <div id="genreFilters" class="filters"></div>
     </section>
 
     <section class="catalogue-section">
-      <div class="section-heading"><div><p class="eyebrow">THE COLLECTION</p><h2 id="collectionTitle">Featured titles</h2></div>
-        <label class="sort-label">Sort <select id="sortSelect"><option value="featured">Featured</option><option value="title">Title A–Z</option><option value="year">Newest year</option><option value="rating">Rating</option></select></label>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">THE COLLECTION</p>
+          <h2 id="collectionTitle">Featured titles</h2>
+        </div>
+        <label class="sort-label">
+          Sort
+          <select id="sortSelect">
+            <option value="featured">Featured</option>
+            <option value="title">Title A–Z</option>
+            <option value="year">Newest year</option>
+            <option value="rating">Rating</option>
+          </select>
+        </label>
       </div>
       <div id="movieGrid" class="movie-grid"></div>
       <p id="emptyState" class="empty-state" hidden>No titles found. Try another search or genre.</p>
     </section>
 
     <section id="adminPanel" class="admin-panel" hidden>
-      <div class="section-heading"><div><p class="eyebrow">SECURE CLOUD CATALOGUE</p><h2>Manage titles</h2></div><button id="closeAdmin" class="ghost-button" type="button">Close</button></div>
-      <p class="notice"><strong>Cloud database:</strong> Sign in with your authorised admin account. Changes are saved to Supabase and shared with all visitors. Only add links for content you own or are authorised to distribute.</p>
-      <form id="loginForm" class="admin-form login-form"><h3>Admin login</h3>
-        <label>Email<input id="adminEmail" type="email" autocomplete="username" required value="hitsnizam@gmail.com"></label>
-        <label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label>
-        <div class="form-actions"><button class="primary-button" type="submit">Sign in</button><button id="logoutButton" class="ghost-button" type="button" hidden>Sign out</button></div>
-        <p id="authStatus" class="auth-status" role="status">Sign in to manage the shared catalogue.</p>
-      </form><div id="adminEditor" hidden>
-      <form id="movieForm" class="admin-form">
-        <input type="hidden" id="editId">
-        <label>Movie title *<input id="movieTitle" required maxlength="120" placeholder="e.g. My Short Film"></label>
-        <div class="form-row">
-          <label>Year<input id="movieYear" type="number" min="1888" max="2100" placeholder="2026"></label>
-          <label>Genre<input id="movieGenre" maxlength="40" placeholder="Drama"></label>
-          <label>Rating (0–10)<input id="movieRating" type="number" min="0" max="10" step="0.1" placeholder="8.0"></label>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SECURE CLOUD CATALOGUE</p>
+          <h2>Manage titles</h2>
         </div>
-        <label>Poster image URL<input id="moviePoster" type="url" placeholder="https://example.com/poster.jpg"></label>
-        <label>Description<textarea id="movieDescription" rows="3" maxlength="1000" placeholder="Short description…"></textarea></label>
-        <label>External download page URL
-          <input id="movieDownload" type="url" placeholder="https://example.com/authorised-download-page">
-          <small>Optional. Visitors will see a “Download / Get film” button that opens this page in a new tab.</small>
+        <button id="closeAdmin" class="ghost-button" type="button">Close</button>
+      </div>
+
+      <p class="notice">
+        <strong>Cloud database:</strong> Sign in with your authorised admin account.
+        Changes are saved to Supabase and shared with all visitors.
+        Only add links for content you own or are authorised to distribute.
+      </p>
+
+      <form id="loginForm" class="admin-form login-form">
+        <h3>Admin login</h3>
+        <label>
+          Email
+          <input id="adminEmail" type="email" autocomplete="username" required value="hitsnizam@gmail.com">
         </label>
-        <div class="form-actions"><button class="primary-button" type="submit" id="saveMovieButton">Save title</button><button class="ghost-button" type="button" id="cancelEdit">Clear form</button></div>
+        <label>
+          Password
+          <input id="adminPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <div class="form-actions">
+          <button class="primary-button" type="submit" id="loginButton">Sign in</button>
+          <button id="logoutButton" class="ghost-button" type="button" hidden>Sign out</button>
+        </div>
+        <p id="authStatus" class="auth-status" role="status">Sign in to manage the shared catalogue.</p>
       </form>
-      <div class="admin-list-heading"><h3>Current titles</h3><button id="exportButton" class="outline-button" type="button">Export catalogue JSON</button></div>
-      <div id="adminList" class="admin-list"></div>
-      <label class="import-label">Import catalogue JSON (optional)<input id="importFile" type="file" accept=".json,application/json"></label>
+
+      <div id="adminEditor" hidden>
+        <form id="movieForm" class="admin-form">
+          <input type="hidden" id="editId">
+          <label>
+            Movie title *
+            <input id="movieTitle" required maxlength="120" placeholder="e.g. My Short Film">
+          </label>
+          <div class="form-row">
+            <label>
+              Year
+              <input id="movieYear" type="number" min="1888" max="2100" placeholder="2026">
+            </label>
+            <label>
+              Genre
+              <input id="movieGenre" maxlength="40" placeholder="Drama">
+            </label>
+            <label>
+              Rating (0–10)
+              <input id="movieRating" type="number" min="0" max="10" step="0.1" placeholder="8.0">
+            </label>
+          </div>
+          <label>
+            Poster image URL
+            <input id="moviePoster" type="url" placeholder="https://example.com/poster.jpg">
+          </label>
+          <label>
+            Description
+            <textarea id="movieDescription" rows="3" maxlength="1000" placeholder="Short description…"></textarea>
+          </label>
+          <label>
+            External download page URL
+            <input id="movieDownload" type="url" placeholder="https://example.com/authorised-download-page">
+            <small>Optional. Use only authorised download pages.</small>
+          </label>
+          <div class="form-actions">
+            <button class="primary-button" type="submit" id="saveMovieButton">Save title</button>
+            <button class="ghost-button" type="button" id="cancelEdit">Clear form</button>
+          </div>
+        </form>
+
+        <div class="admin-list-heading">
+          <h3>Current titles</h3>
+          <button id="exportButton" class="outline-button" type="button">Export catalogue JSON</button>
+        </div>
+        <div id="adminList" class="admin-list"></div>
+        <label class="import-label">
+          Import catalogue JSON (optional)
+          <input id="importFile" type="file" accept=".json,application/json">
+        </label>
       </div>
     </section>
   </main>
@@ -70,10 +145,20 @@
     <article class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <button class="modal-close" type="button" data-close-modal aria-label="Close details">×</button>
       <img id="detailPoster" class="detail-poster" alt="">
-      <div class="detail-content"><p id="detailMeta" class="eyebrow"></p><h2 id="detailTitle"></h2><p id="detailDescription"></p><div id="detailActions" class="detail-actions"></div></div>
+      <div class="detail-content">
+        <p id="detailMeta" class="eyebrow"></p>
+        <h2 id="detailTitle"></h2>
+        <p id="detailDescription"></p>
+        <div id="detailActions" class="detail-actions"></div>
+      </div>
     </article>
   </div>
-  <footer><span>© <span id="yearNow"></span> CineVault</span><span>Catalogue for films shared with permission.</span></footer>
+
+  <footer>
+    <span>© <span id="yearNow"></span> CineVault</span>
+    <span>Catalogue for films shared with permission.</span>
+  </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
