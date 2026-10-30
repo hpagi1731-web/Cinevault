@@ -34,8 +34,14 @@
     </section>
 
     <section id="adminPanel" class="admin-panel" hidden>
-      <div class="section-heading"><div><p class="eyebrow">LOCAL CATALOGUE EDITOR</p><h2>Manage titles</h2></div><button id="closeAdmin" class="ghost-button" type="button">Close</button></div>
-      <p class="notice"><strong>Note:</strong> This static GitHub Pages site saves edits in this browser only. It does not securely publish admin edits to every visitor. Only add download links for content you own or are authorised to distribute.</p>
+      <div class="section-heading"><div><p class="eyebrow">SECURE CLOUD CATALOGUE</p><h2>Manage titles</h2></div><button id="closeAdmin" class="ghost-button" type="button">Close</button></div>
+      <p class="notice"><strong>Cloud database:</strong> Sign in with your authorised admin account. Changes are saved to Supabase and shared with all visitors. Only add links for content you own or are authorised to distribute.</p>
+      <form id="loginForm" class="admin-form login-form"><h3>Admin login</h3>
+        <label>Email<input id="adminEmail" type="email" autocomplete="username" required value="hitsnizam@gmail.com"></label>
+        <label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label>
+        <div class="form-actions"><button class="primary-button" type="submit">Sign in</button><button id="logoutButton" class="ghost-button" type="button" hidden>Sign out</button></div>
+        <p id="authStatus" class="auth-status" role="status">Sign in to manage the shared catalogue.</p>
+      </form><div id="adminEditor" hidden>
       <form id="movieForm" class="admin-form">
         <input type="hidden" id="editId">
         <label>Movie title *<input id="movieTitle" required maxlength="120" placeholder="e.g. My Short Film"></label>
@@ -55,6 +61,7 @@
       <div class="admin-list-heading"><h3>Current titles</h3><button id="exportButton" class="outline-button" type="button">Export catalogue JSON</button></div>
       <div id="adminList" class="admin-list"></div>
       <label class="import-label">Import catalogue JSON (optional)<input id="importFile" type="file" accept=".json,application/json"></label>
+      </div>
     </section>
   </main>
 
@@ -67,6 +74,7 @@
     </article>
   </div>
   <footer><span>© <span id="yearNow"></span> CineVault</span><span>Catalogue for films shared with permission.</span></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>
