@@ -605,4 +605,4 @@ supabase.auth.onAuthStateChange((_event, session) => {
     setStatus(err.message, true);
   }
 })();
-   
+    
