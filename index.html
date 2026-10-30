@@ -1,165 +1,235 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0d14">
-  <meta name="description" content="CineVault movie catalogue">
-  <title>CineVault — Movie Catalogue</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>CineVault — Discover Movies</title>
+
+  <meta
+    name="description"
+    content="Discover movies, explore film details, and build your personal watchlist with CineVault."
+  >
+
+  <meta name="theme-color" content="#0b0b12">
+
   <link rel="stylesheet" href="styles.css">
+
+  <link rel="icon" href="data:,">
 </head>
+
 <body>
-  <header class="topbar">
-    <a class="brand" href="#">
-      <span class="brand-mark">C</span>
-      <span>Cine<span>Vault</span></span>
-    </a>
-    <div class="header-actions">
-      <button id="watchlistToggle" class="ghost-button" type="button">
-        ♡ Watchlist <span id="watchlistCount">0</span>
-      </button>
-      <button id="adminToggle" class="outline-button" type="button">Admin</button>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+
+      <a href="./" class="brand">
+        <span class="brand-icon">CV</span>
+        <span>CineVault</span>
+      </a>
+
+      <nav class="header-actions">
+        <button
+          type="button"
+          class="outline-button"
+          id="watchlistToggle"
+        >
+          ♡ Watchlist
+          <span id="watchlistCount">0</span>
+        </button>
+      </nav>
+
     </div>
   </header>
 
+
+  <!-- HERO -->
   <main>
+
     <section class="hero">
-      <p class="eyebrow">YOUR PERSONAL CINEMA LIBRARY</p>
-      <h1>Find your next <span>favourite.</span></h1>
-      <p class="hero-copy">Discover films, explore details, and follow authorised download links.</p>
-      <label class="search-wrap">
-        <span aria-hidden="true">⌕</span>
-        <input id="searchInput" type="search" placeholder="Search titles, genres, descriptions…" autocomplete="off">
-      </label>
-      <div id="genreFilters" class="filters"></div>
+      <div class="container">
+
+        <span class="hero-label">YOUR MOVIE COLLECTION</span>
+
+        <h1>
+          Discover your next
+          <span>favourite movie.</span>
+        </h1>
+
+        <p>
+          Discover films, explore details, and build your
+          personal watchlist.
+        </p>
+
+      </div>
     </section>
 
+
+    <!-- SEARCH AND FILTERS -->
     <section class="catalogue-section">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">THE COLLECTION</p>
-          <h2 id="collectionTitle">Featured titles</h2>
+      <div class="container">
+
+        <div class="search-area">
+
+          <div class="search-box">
+            <span class="search-icon">⌕</span>
+
+            <input
+              type="search"
+              id="searchInput"
+              placeholder="Search movies, genres..."
+              aria-label="Search movies"
+            >
+          </div>
+
         </div>
-        <label class="sort-label">
-          Sort
-          <select id="sortSelect">
-            <option value="featured">Featured</option>
-            <option value="title">Title A–Z</option>
-            <option value="year">Newest year</option>
-            <option value="rating">Rating</option>
-          </select>
-        </label>
+
+
+        <!-- GENRE FILTERS -->
+        <div
+          class="genre-filters"
+          id="genreFilters"
+          aria-label="Filter by genre"
+        ></div>
+
+
+        <!-- COLLECTION HEADER -->
+        <div class="collection-header">
+
+          <div>
+            <h2 id="collectionTitle">Featured titles</h2>
+            <p>Explore the CineVault collection</p>
+          </div>
+
+          <div class="sort-area">
+            <label for="sortSelect">Sort by</label>
+
+            <select id="sortSelect">
+              <option value="newest">Recently added</option>
+              <option value="title">Title</option>
+              <option value="year">Release year</option>
+              <option value="rating">Rating</option>
+            </select>
+          </div>
+
+        </div>
+
+
+        <!-- MOVIE GRID -->
+        <div
+          class="movie-grid"
+          id="movieGrid"
+        ></div>
+
+
+        <!-- EMPTY STATE -->
+        <div
+          class="empty-state"
+          id="emptyState"
+          hidden
+        >
+          Loading movies...
+        </div>
+
       </div>
-      <div id="movieGrid" class="movie-grid"></div>
-      <p id="emptyState" class="empty-state" hidden>No titles found. Try another search or genre.</p>
     </section>
 
-    <section id="adminPanel" class="admin-panel" hidden>
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">SECURE CLOUD CATALOGUE</p>
-          <h2>Manage titles</h2>
-        </div>
-        <button id="closeAdmin" class="ghost-button" type="button">Close</button>
-      </div>
-
-      <p class="notice">
-        <strong>Cloud database:</strong> Sign in with your authorised admin account.
-        Changes are saved to Supabase and shared with all visitors.
-        Only add links for content you own or are authorised to distribute.
-      </p>
-
-      <form id="loginForm" class="admin-form login-form">
-        <h3>Admin login</h3>
-        <label>
-          Email
-          <input id="adminEmail" type="email" autocomplete="username" required value="hitsnizam@gmail.com">
-        </label>
-        <label>
-          Password
-          <input id="adminPassword" type="password" autocomplete="current-password" required>
-        </label>
-        <div class="form-actions">
-          <button class="primary-button" type="submit" id="loginButton">Sign in</button>
-          <button id="logoutButton" class="ghost-button" type="button" hidden>Sign out</button>
-        </div>
-        <p id="authStatus" class="auth-status" role="status">Sign in to manage the shared catalogue.</p>
-      </form>
-
-      <div id="adminEditor" hidden>
-        <form id="movieForm" class="admin-form">
-          <input type="hidden" id="editId">
-          <label>
-            Movie title *
-            <input id="movieTitle" required maxlength="120" placeholder="e.g. My Short Film">
-          </label>
-          <div class="form-row">
-            <label>
-              Year
-              <input id="movieYear" type="number" min="1888" max="2100" placeholder="2026">
-            </label>
-            <label>
-              Genre
-              <input id="movieGenre" maxlength="40" placeholder="Drama">
-            </label>
-            <label>
-              Rating (0–10)
-              <input id="movieRating" type="number" min="0" max="10" step="0.1" placeholder="8.0">
-            </label>
-          </div>
-          <label>
-            Poster image URL
-            <input id="moviePoster" type="url" placeholder="https://example.com/poster.jpg">
-          </label>
-          <label>
-            Description
-            <textarea id="movieDescription" rows="3" maxlength="1000" placeholder="Short description…"></textarea>
-          </label>
-          <label>
-            External download page URL
-            <input id="movieDownload" type="url" placeholder="https://example.com/authorised-download-page">
-            <small>Optional. Use only authorised download pages.</small>
-          </label>
-          <div class="form-actions">
-            <button class="primary-button" type="submit" id="saveMovieButton">Save title</button>
-            <button class="ghost-button" type="button" id="cancelEdit">Clear form</button>
-          </div>
-        </form>
-
-        <div class="admin-list-heading">
-          <h3>Current titles</h3>
-          <button id="exportButton" class="outline-button" type="button">Export catalogue JSON</button>
-        </div>
-        <div id="adminList" class="admin-list"></div>
-        <label class="import-label">
-          Import catalogue JSON (optional)
-          <input id="importFile" type="file" accept=".json,application/json">
-        </label>
-      </div>
-    </section>
   </main>
 
-  <div id="detailModal" class="modal" hidden>
-    <div class="modal-backdrop" data-close-modal></div>
-    <article class="detail-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
-      <button class="modal-close" type="button" data-close-modal aria-label="Close details">×</button>
-      <img id="detailPoster" class="detail-poster" alt="">
-      <div class="detail-content">
-        <p id="detailMeta" class="eyebrow"></p>
-        <h2 id="detailTitle"></h2>
-        <p id="detailDescription"></p>
-        <div id="detailActions" class="detail-actions"></div>
+
+  <!-- MOVIE DETAILS MODAL -->
+  <div
+    class="modal"
+    id="detailModal"
+    hidden
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="detailTitle"
+  >
+
+    <div
+      class="modal-backdrop"
+      data-close-modal
+    ></div>
+
+    <div class="modal-content">
+
+      <button
+        type="button"
+        class="modal-close"
+        data-close-modal
+        aria-label="Close movie details"
+      >
+        &times;
+      </button>
+
+      <div class="detail-layout">
+
+        <div class="detail-poster-wrap">
+          <img
+            id="detailPoster"
+            src=""
+            alt="Movie poster"
+          >
+        </div>
+
+        <div class="detail-content">
+
+          <p
+            class="detail-meta"
+            id="detailMeta"
+          ></p>
+
+          <h2 id="detailTitle"></h2>
+
+          <p
+            class="detail-description"
+            id="detailDescription"
+          ></p>
+
+          <div
+            class="detail-actions"
+            id="detailActions"
+          ></div>
+
+        </div>
+
       </div>
-    </article>
+
+    </div>
+
   </div>
 
-  <footer>
-    <span>© <span id="yearNow"></span> CineVault</span>
-    <span>Catalogue for films shared with permission.</span>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+
+      <div class="footer-brand">
+        <span class="brand-icon">CV</span>
+        <span>CineVault</span>
+      </div>
+
+      <p>
+        Your personal destination for discovering movies.
+      </p>
+
+      <p class="copyright">
+        &copy; <span id="yearNow"></span> CineVault.
+        All rights reserved.
+      </p>
+
+    </div>
   </footer>
 
+
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- APPLICATION -->
   <script src="app.js"></script>
+
 </body>
 </html>
