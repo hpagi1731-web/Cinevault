@@ -1,0 +1,280 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #090909;
+  --panel: #151515;
+  --panel-2: #202020;
+  --red: #e50914;
+  --red-dark: #a80710;
+  --text: #f5f5f5;
+  --muted: #a7a7a7;
+  --line: #292929;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px 'DM Sans', Arial, sans-serif;
+}
+a { color: inherit; text-decoration: none; }
+
+header {
+  min-height: 62px;
+  padding: 0 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: #050505;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.brand {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -.8px;
+}
+.brand span, .hero h1 span, .admin h1 span { color: var(--red); }
+nav { display: flex; align-items: center; gap: 22px; color: #ddd; font-weight: 600; }
+nav a:hover { color: var(--red); }
+#count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  margin-left: 3px;
+  border-radius: 20px;
+  background: var(--red);
+  color: white;
+  font-size: 11px;
+}
+
+.hero {
+  padding: 34px 5% 30px;
+  background: linear-gradient(110deg, #170607, #0b0b0b 58%, #151515);
+  border-bottom: 1px solid var(--line);
+}
+.eyebrow {
+  margin: 0 0 8px;
+  color: #ff5a61;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+.hero h1, .admin h1 {
+  margin: 5px 0 8px;
+  font-size: clamp(29px, 5vw, 46px);
+  line-height: 1.1;
+  font-weight: 800;
+}
+.hero p:not(.eyebrow), .admin > p { color: var(--muted); }
+#search {
+  display: block;
+  width: min(680px, 100%);
+  margin-top: 18px;
+}
+
+input, textarea, select {
+  min-height: 42px;
+  padding: 11px 13px;
+  border: 1px solid #383838;
+  border-radius: 5px;
+  outline: none;
+  background: #171717;
+  color: var(--text);
+  font: inherit;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--red); }
+input::placeholder, textarea::placeholder { color: #858585; }
+
+main#catalogue { padding: 28px 5% 48px; }
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+.heading h2::before, #watchlist h2::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  margin: 0 9px -3px 0;
+  background: var(--red);
+}
+#sort { min-height: 37px; padding: 8px 10px; }
+.filters {
+  display: flex;
+  gap: 8px;
+  margin: 17px 0;
+  padding: 2px 0 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.filters button, button {
+  flex: 0 0 auto;
+  padding: 8px 13px;
+  border: 1px solid #383838;
+  border-radius: 4px;
+  background: #1b1b1b;
+  color: #eee;
+  font: inherit;
+  cursor: pointer;
+}
+.filters button:hover, button:hover { border-color: var(--red); }
+.filters .active, form button {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+#message { color: var(--muted); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 17px 13px;
+}
+.card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #242424;
+  border-radius: 5px;
+  background: var(--panel);
+  transition: transform .18s ease, border-color .18s ease;
+}
+.card:hover { transform: translateY(-3px); border-color: #555; }
+.poster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 2.85;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #202020;
+}
+.poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.poster span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #777;
+  font-size: 42px;
+  font-weight: 800;
+}
+.info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 6px;
+  padding: 9px 9px 11px;
+}
+.info strong, .info b {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+.info small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+}
+.heart {
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: #ff4c55;
+  font-size: 19px;
+}
+
+#watchlist {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+#watchlist h2 { margin-bottom: 18px; }
+
+dialog {
+  width: min(650px, calc(100% - 28px));
+  max-width: 650px;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid #555;
+  border-top: 3px solid var(--red);
+  border-radius: 7px;
+  background: #151515;
+  color: var(--text);
+}
+dialog::backdrop { background: #000d; }
+#close { float: right; padding: 4px 10px; font-size: 20px; }
+.detailimg {
+  float: left;
+  max-width: 155px;
+  max-height: 230px;
+  margin: 0 18px 12px 0;
+  object-fit: cover;
+}
+
+footer {
+  padding: 22px 5%;
+  border-top: 1px solid var(--line);
+  background: #050505;
+  color: #888;
+  font-size: 12px;
+}
+
+/* Admin page styles retained */
+.admin { max-width: 760px; min-height: 70vh; margin: 42px auto; padding: 0 22px; }
+.admin section { margin: 18px 0; padding: 22px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); }
+.admin form { display: grid; gap: 12px; }
+.admin textarea { min-height: 100px; }
+.admin form button { font-weight: 700; }
+.admin [hidden] { display: none !important; }
+#list p { padding: 12px 0; border-bottom: 1px solid #333; }
+#list button { float: right; margin-left: 8px; }
+
+@media (max-width: 850px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  header { min-height: 56px; padding: 0 14px; }
+  .brand { font-size: 22px; }
+  nav { gap: 13px; font-size: 12px; }
+  .hero { padding: 27px 16px 24px; }
+  .hero h1 { font-size: 31px; }
+  main#catalogue { padding: 22px 12px 38px; }
+  .heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .heading h2 { font-size: 20px; }
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
+  .info { gap: 4px; padding: 7px 6px 9px; }
+  .info strong, .info b { font-size: 11px; }
+  .info small { font-size: 10px; }
+  .poster span { font-size: 30px; }
+  #watchlist { margin-top: 36px; }
+  .admin { margin: 28px auto; }
+}
+@media (max-width: 360px) {
+  .grid { gap: 9px 6px; }
+  .info { padding: 6px 5px 8px; }
+  .info strong, .info b { font-size: 10px; }
+  nav { gap: 9px; }
+}
