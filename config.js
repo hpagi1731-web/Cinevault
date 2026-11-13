@@ -1,0 +1,2 @@
+// Public browser key only. NEVER use the Supabase service_role key here.
+window.CINEVAULT_CONFIG={SUPABASE_URL:"https://nurpfyozhtuirrkasadk.supabase.co",SUPABASE_ANON_KEY:"sb_publishable_AHnmjArp9RZYcqymMp6F_A_guEVZFOn",ADMIN_EMAIL:"hitsnizam@gmail.com"};
